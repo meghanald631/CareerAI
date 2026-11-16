@@ -1,0 +1,20 @@
+# Environment variables and secrets
+.env
+.env.*
+
+# Python virtual environment
+venv/
+.venv/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+
+# IDE settings
+.idea/
+
+# ZIP backups
+*.zip
+
+# Test and cache files
+test_gemini.py

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>My Profile | CareerAI</title><link rel="stylesheet" href="style.css"><script src="api.js" defer></script></head>
+<body>
+<header class="navbar"><a href="dashboard.html" class="logo">Career<span>AI.</span></a><nav class="nav-links"><a href="dashboard.html">Dashboard</a><a href="applications.html">Applications</a></nav><button class="button button-small" id="logoutButton">Logout</button></header>
+<main class="section"><div class="section-heading"><h1>Candidate Profile</h1><p>Your profile and skills are used for job matching and document generation.</p></div>
+<section class="auth-card wide-card"><h2>Profile Details</h2><form id="profileForm">
+<div class="form-group"><label for="full_name">Full Name</label><input id="full_name" required></div>
+<div class="form-group"><label for="phone">Phone</label><input id="phone"></div>
+<div class="form-group"><label for="location">Location</label><input id="location"></div>
+<div class="form-group"><label for="education">Education</label><textarea id="education"></textarea></div>
+<div class="form-group"><label for="experience_summary">Experience Summary</label><textarea id="experience_summary" rows="5"></textarea></div>
+<button class="button" type="submit" id="profileSave">Save Profile</button><p id="profileMessage" class="form-message"></p>
+</form></section>
+<section class="auth-card wide-card"><h2>Skills</h2><form id="skillForm"><div class="form-group"><label for="skillName">Add a skill</label><input id="skillName" required></div><button class="button">Add Skill</button></form><p id="skillMessage" class="form-message"></p><ul id="skillsList"></ul></section>
+<section class="auth-card wide-card"><h2>Candidate Facts</h2><p>Facts are stored as unverified by the current backend. The AI answer endpoint only uses verified facts.</p>
+<form id="factForm"><div class="form-group"><label for="factCategory">Category</label><input id="factCategory" required placeholder="Project, education, experience..."></div><div class="form-group"><label for="factText">Fact</label><textarea id="factText" required></textarea></div><div class="form-group"><label for="factSource">Source</label><input id="factSource"></div><button class="button">Save Fact</button></form><p id="factMessage" class="form-message"></p><ul id="factsList"></ul>
+</section></main>
+<script>
+requireLogin();
+let hasProfile = false;
+async function loadProfile() {
+    try {
+        const p = await apiRequest("/profile");
+        hasProfile = true;
+        ["full_name","phone","location","education","experience_summary"].forEach(k => document.getElementById(k).value = p[k] || "");
+        document.getElementById("profileSave").disabled = true;
+        document.getElementById("profileMessage").textContent = "Profile already exists. The current backend has no profile update endpoint.";
+    } catch(e) {
+        if (e.message.toLowerCase().includes("profile not found")) {
+            document.getElementById("profileMessage").textContent = "Create your candidate profile.";
+        } else document.getElementById("profileMessage").textContent = e.message;
+    }
+    try {
+        const skills = await apiRequest("/skills");
+        document.getElementById("skillsList").innerHTML = skills.map(s=>`<li>${escapeHTML(s.skill_name)}</li>`).join("") || "<li>No skills added.</li>";
+        const facts = await apiRequest("/facts");
+        document.getElementById("factsList").innerHTML = facts.map(f=>`<li><strong>${escapeHTML(f.category)}</strong>: ${escapeHTML(f.fact_text)} — ${f.is_verified ? "Verified" : "Unverified"}</li>`).join("") || "<li>No facts added.</li>";
+    } catch(e) { document.getElementById("factMessage").textContent = e.message; }
+}
+document.getElementById("profileForm").onsubmit = async e => {
+    e.preventDefault(); if(hasProfile) return;
+    const payload = {};
+    ["full_name","phone","location","education","experience_summary"].forEach(k=>payload[k]=document.getElementById(k).value.trim() || null);
+    try { await apiRequest("/profile",{method:"POST",body:jsonBody(payload)}); hasProfile=true; document.getElementById("profileSave").disabled=true; document.getElementById("profileMessage").textContent="Profile saved."; }
+    catch(err){ document.getElementById("profileMessage").textContent=err.message; }
+};
+document.getElementById("skillForm").onsubmit = async e => {
+    e.preventDefault();
+    try { await apiRequest("/skills",{method:"POST",body:jsonBody({skill_name:document.getElementById("skillName").value.trim()})}); document.getElementById("skillMessage").textContent="Skill added."; document.getElementById("skillName").value=""; loadProfile(); }
+    catch(err){document.getElementById("skillMessage").textContent=err.message;}
+};
+document.getElementById("factForm").onsubmit = async e => {
+    e.preventDefault();
+    try { await apiRequest("/facts",{method:"POST",body:jsonBody({category:document.getElementById("factCategory").value.trim(),fact_text:document.getElementById("factText").value.trim(),source:document.getElementById("factSource").value.trim()||null})}); document.getElementById("factMessage").textContent="Fact saved as unverified."; e.target.reset(); loadProfile(); }
+    catch(err){document.getElementById("factMessage").textContent=err.message;}
+};
+loadProfile();
+</script></body></html>

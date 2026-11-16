@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Career Insights | CareerAI</title><link rel="stylesheet" href="style.css"><script src="api.js" defer></script></head>
+<body><header class="navbar"><a href="dashboard.html" class="logo">Career<span>AI.</span></a><nav class="nav-links"><a href="dashboard.html">Dashboard</a><a href="applications.html">Applications</a></nav><button class="button button-small" id="logoutButton">Logout</button></header>
+<main class="section"><div class="section-heading"><h1>Career Insights</h1><p>AI analysis of your recorded application outcomes and interview history.</p></div>
+<section class="feature-card"><h2>Application Insights</h2><p>Uses your saved applications, status changes and communications.</p><button class="button" id="applicationInsightsButton">Generate Application Insights</button><pre id="applicationInsights"></pre></section>
+<section class="feature-card"><h2>Interview Improvements</h2><p>Uses your recorded interview questions, responses, feedback and verified candidate facts.</p><button class="button" id="interviewInsightsButton">Generate Interview Improvements</button><pre id="interviewInsights"></pre></section></main>
+<script>
+requireLogin();
+document.getElementById("applicationInsightsButton").onclick=async()=>{const out=document.getElementById("applicationInsights");out.textContent="Analysing application history...";try{const d=await apiRequest("/ai/application-insights");out.textContent=d.insights;}catch(e){out.textContent=e.message;}};
+document.getElementById("interviewInsightsButton").onclick=async()=>{const out=document.getElementById("interviewInsights");out.textContent="Analysing interview history...";try{const d=await apiRequest("/ai/interview-improvements");out.textContent=d.improvements;}catch(e){out.textContent=e.message;}};
+</script></body></html>

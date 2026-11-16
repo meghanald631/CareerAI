@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Applications | CareerAI</title>
+<link rel="stylesheet" href="style.css">
+<script src="api.js" defer></script>
+</head>
+<body>
+<header class="navbar">
+    <a href="dashboard.html" class="logo">Career<span>AI.</span></a>
+    <nav class="nav-links"><a href="dashboard.html">Dashboard</a><a href="job_analysis.html">Job Workspace</a></nav>
+    <button class="button button-small" id="logoutButton">Logout</button>
+</header>
+<main class="section">
+    <div class="section-heading"><h1>My Applications</h1><p>Add, track and review the progress of your job applications.</p></div>
+    <section class="auth-card wide-card">
+        <h2>Add New Application</h2>
+        <form id="applicationForm">
+            <div class="form-group"><label for="companyName">Company Name</label><input id="companyName" required></div>
+            <div class="form-group"><label for="jobTitle">Job Title</label><input id="jobTitle" required></div>
+            <div class="form-group"><label for="jobUrl">Job URL</label><input id="jobUrl" type="url"></div>
+            <div class="form-group"><label for="location">Location</label><input id="location"></div>
+            <div class="form-group"><label for="jobDescription">Job Description</label><textarea id="jobDescription" rows="5"></textarea></div>
+            <button class="button" type="submit">Save Application</button>
+            <p id="formMessage" class="form-message"></p>
+        </form>
+    </section>
+    <section class="section-inner">
+        <h2>Saved Applications</h2>
+        <p id="listMessage"></p>
+        <div id="applicationsList">Loading applications...</div>
+    </section>
+</main>
+<script>
+requireLogin();
+const statusValues = ["applied", "shortlisted", "interview", "selected", "rejected", "offer", "withdrawn"];
+async function loadApplications() {
+    const list = document.getElementById("applicationsList");
+    try {
+        const apps = await apiRequest("/applications");
+        if (!apps.length) { list.textContent = "No applications added yet."; return; }
+        list.innerHTML = apps.map(app => `
+            <article class="feature-card app-card">
+                <h3>${escapeHTML(app.job_title)}</h3>
+                <p><strong>Company:</strong> ${escapeHTML(app.company_name)}</p>
+                <p><strong>Location:</strong> ${escapeHTML(app.location || "Not specified")}</p>
+                <p><strong>Job:</strong> ${app.job_url ? `<a href="${escapeHTML(app.job_url)}" target="_blank" rel="noopener noreferrer">View posting</a>` : "No URL"}</p>
+                <div class="form-group">
+                    <label for="status-${app.id}">Application status</label>
+                    <select id="status-${app.id}" onchange="changeStatus(${app.id}, this.value)">
+                        ${statusValues.map(s => `<option value="${s}" ${s === String(app.status).toLowerCase() ? "selected" : ""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}
+                    </select>
+                </div>
+                <p id="status-msg-${app.id}" class="form-message"></p>
+                <button class="button button-small" onclick="showHistory(${app.id})" type="button">View Status History</button>
+                <div id="history-${app.id}" class="history-box"></div>
+            </article>
+        `).join("");
+    } catch (error) {
+        list.textContent = error.message;
+    }
+}
+async function changeStatus(id, status) {
+    const msg = document.getElementById(`status-msg-${id}`);
+    msg.textContent = "Updating...";
+    try {
+        await apiRequest(`/applications/${id}/status`, {
+            method: "PATCH",
+            body: jsonBody({status, notes: "Status updated from CareerAI"})
+        });
+        msg.textContent = "Status updated and history recorded.";
+    } catch (error) { msg.textContent = error.message; }
+}
+async function showHistory(id) {
+    const box = document.getElementById(`history-${id}`);
+    box.textContent = "Loading history...";
+    try {
+        const rows = await apiRequest(`/applications/${id}/history`);
+        box.innerHTML = rows.length ? `<h4>Status history</h4><ul>${rows.map(r =>
+            `<li>${escapeHTML(r.old_status || "Created")} → <strong>${escapeHTML(r.new_status)}</strong> ${r.notes ? "— " + escapeHTML(r.notes) : ""}</li>`
+        ).join("")}</ul>` : "No status history recorded.";
+    } catch (error) { box.textContent = error.message; }
+}
+document.getElementById("applicationForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    const msg = document.getElementById("formMessage");
+    msg.textContent = "Saving...";
+    try {
+        await apiRequest("/applications", {
+            method: "POST",
+            body: jsonBody({
+                company_name: document.getElementById("companyName").value.trim(),
+                job_title: document.getElementById("jobTitle").value.trim(),
+                job_url: document.getElementById("jobUrl").value.trim() || null,
+                location: document.getElementById("location").value.trim() || null,
+                job_description: document.getElementById("jobDescription").value.trim() || null
+            })
+        });
+        msg.textContent = "Application saved.";
+        event.target.reset();
+        await loadApplications();
+    } catch (error) { msg.textContent = error.message; }
+});
+loadApplications();
+</script>
+</body>
+</html>

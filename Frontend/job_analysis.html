@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Workspace | CareerAI</title>
+<link rel="stylesheet" href="style.css">
+<script src="api.js" defer></script>
+</head>
+<body>
+<header class="navbar">
+    <a href="dashboard.html" class="logo">Career<span>AI.</span></a>
+    <nav class="nav-links"><a href="dashboard.html">Dashboard</a><a href="applications.html">Applications</a></nav>
+    <button class="button button-small" id="logoutButton">Logout</button>
+</header>
+<main class="section">
+    <div class="section-heading"><span class="eyebrow">AI JOB WORKSPACE</span><h1>Understand. Match. Apply.</h1><p>Analyse a job description, compare it with your profile and save the opportunity.</p></div>
+    <section class="feature-card">
+        <h2>Job Details</h2>
+        <div class="form-group"><label for="companyName">Company Name</label><input id="companyName"></div>
+        <div class="form-group"><label for="jobTitle">Job Title</label><input id="jobTitle"></div>
+        <div class="form-group"><label for="jobUrl">Job URL</label><input id="jobUrl" type="url"></div>
+        <div class="form-group"><label for="jobLocation">Location</label><input id="jobLocation"></div>
+        <div class="form-group"><label for="jobDescription">Paste Job Description</label><textarea id="jobDescription" rows="9"></textarea></div>
+        <div class="form-group"><label for="jobFile">Or upload job description (PDF/DOCX)</label><input id="jobFile" type="file" accept=".pdf,.docx"></div>
+        <button class="button" id="uploadAnalyzeButton" type="button">Upload & Analyse Document</button>
+        <button class="button" id="analyzeButton" type="button">Analyse Text</button>
+        <button class="button" id="matchButton" type="button">Check My Job Match</button>
+        <p id="jobMessage" class="form-message"></p>
+    </section>
+    <section class="feature-card"><h2>Job Analysis</h2><pre id="analysisResult">Your analysis appears here.</pre></section>
+    <section class="feature-card"><h2>Candidate Job Match</h2><pre id="matchResult">Your match analysis appears here.</pre></section>
+    <section class="feature-card"><h2>Save Application</h2><button class="button" id="saveButton">Save this opportunity</button><p id="saveMessage" class="form-message"></p></section>
+    <section class="feature-card" id="resume"><h2>AI Resume Builder</h2><p>Save the application before generating its tailored resume.</p><button class="button" id="resumeButton" disabled>Generate Resume</button><pre id="resumeResult"></pre></section>
+    <section class="feature-card" id="cover-letter"><h2>AI Cover Letter</h2><button class="button" id="coverButton" disabled>Generate Cover Letter</button><pre id="coverResult"></pre></section>
+    <section class="feature-card"><h2>Application Question Assistant</h2><div class="form-group"><label for="question">Question</label><textarea id="question" rows="3"></textarea></div><button class="button" id="answerButton">Generate Answer</button><pre id="answerResult"></pre><p class="form-message">Answers use verified candidate facts only. Your current backend does not yet provide a frontend action to mark facts as verified.</p></section>
+</main>
+<script>
+requireLogin();
+let applicationId = null;
+const jobDescription = () => document.getElementById("jobDescription").value.trim();
+const jobDetails = () => ({
+    company_name: document.getElementById("companyName").value.trim(),
+    job_title: document.getElementById("jobTitle").value.trim(),
+    job_url: document.getElementById("jobUrl").value.trim() || null,
+    location: document.getElementById("jobLocation").value.trim() || null,
+    job_description: jobDescription() || null
+});
+document.getElementById("analyzeButton").onclick = async () => {
+    const out = document.getElementById("analysisResult");
+    if (!jobDescription()) { out.textContent = "Paste a job description first."; return; }
+    out.textContent = "Analysing...";
+    try {
+        const data = await apiRequest("/ai/analyze-job", {method:"POST", body:jsonBody({job_description:jobDescription()})});
+        out.textContent = data.analysis;
+    } catch(e) { out.textContent = e.message; }
+};
+document.getElementById("uploadAnalyzeButton").onclick = async () => {
+    const file = document.getElementById("jobFile").files[0];
+    const out = document.getElementById("analysisResult");
+    if (!file) { out.textContent = "Choose a PDF or DOCX file first."; return; }
+    const form = new FormData(); form.append("file", file);
+    out.textContent = "Extracting and analysing document...";
+    try {
+        const data = await apiRequest("/ai/analyze-job-document", {method:"POST", body:form});
+        out.textContent = `File: ${data.filename}\n\n${data.analysis}`;
+        document.getElementById("jobDescription").value = "";
+    } catch(e) { out.textContent = e.message; }
+};
+document.getElementById("matchButton").onclick = async () => {
+    const out = document.getElementById("matchResult");
+    if (!jobDescription()) { out.textContent = "Paste a job description first. For uploaded files, copy the extracted text into the description box before matching."; return; }
+    out.textContent = "Checking your match...";
+    try {
+        const data = await apiRequest("/ai/job-match", {method:"POST", body:jsonBody({job_description:jobDescription()})});
+        out.textContent = data.match_analysis;
+    } catch(e) { out.textContent = e.message; }
+};
+document.getElementById("saveButton").onclick = async () => {
+    const details = jobDetails(), msg = document.getElementById("saveMessage");
+    if (!details.company_name || !details.job_title) { msg.textContent = "Company name and job title are required."; return; }
+    msg.textContent = "Saving...";
+    try {
+        const app = await apiRequest("/applications", {method:"POST", body:jsonBody(details)});
+        applicationId = app.id;
+        document.getElementById("resumeButton").disabled = false;
+        document.getElementById("coverButton").disabled = false;
+        msg.textContent = `Saved successfully. Application ID: ${applicationId}`;
+    } catch(e) { msg.textContent = e.message; }
+};
+document.getElementById("resumeButton").onclick = async () => {
+    const out = document.getElementById("resumeResult");
+    if (!applicationId) { out.textContent = "Save this job first."; return; }
+    out.textContent = "Generating resume...";
+    try {
+        const d = await apiRequest("/ai/generate-resume", {method:"POST", body:jsonBody({application_id:applicationId, job_description:jobDescription()})});
+        out.textContent = d.tailored_resume;
+    } catch(e) { out.textContent = e.message; }
+};
+document.getElementById("coverButton").onclick = async () => {
+    const out = document.getElementById("coverResult");
+    if (!applicationId) { out.textContent = "Save this job first."; return; }
+    out.textContent = "Generating cover letter...";
+    try {
+        const d = await apiRequest("/ai/generate-cover-letter", {method:"POST", body:jsonBody({application_id:applicationId, job_description:jobDescription()})});
+        out.textContent = d.cover_letter;
+    } catch(e) { out.textContent = e.message; }
+};
+document.getElementById("answerButton").onclick = async () => {
+    const out = document.getElementById("answerResult");
+    const question = document.getElementById("question").value.trim();
+    if (!question) { out.textContent = "Enter a question."; return; }
+    out.textContent = "Generating answer...";
+    try {
+        const d = await apiRequest("/ai/generate-answer", {method:"POST", body:jsonBody({question})});
+        out.textContent = d.answer;
+    } catch(e) { out.textContent = e.message; }
+};
+</script>
+</body>
+</html>

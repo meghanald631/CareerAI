@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account | CareerAI</title>
+<link rel="stylesheet" href="style.css">
+<script src="api.js" defer></script>
+</head>
+<body>
+<header class="navbar">
+    <a href="index.html" class="logo">Career<span>AI.</span></a>
+    <a href="login.html" class="login-link">Already registered? Login</a>
+</header>
+<main class="auth-page">
+<section class="auth-card">
+    <div class="auth-heading">
+        <h1>Create your account</h1>
+        <p>Start managing your job applications with AI.</p>
+    </div>
+    <form id="registerForm">
+        <div class="form-group">
+            <label for="registerEmail">Email address</label>
+            <input type="email" id="registerEmail" required autocomplete="email">
+        </div>
+        <div class="form-group">
+            <label for="registerPassword">Password</label>
+            <input type="password" id="registerPassword" required minlength="8" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+            <label for="confirmPassword">Confirm password</label>
+            <input type="password" id="confirmPassword" required minlength="8" autocomplete="new-password">
+        </div>
+        <button type="submit" class="button auth-submit">Create Account</button>
+        <p id="registerMessage" class="form-message"></p>
+    </form>
+</section>
+</main>
+<script>
+document.getElementById("registerForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    const password = document.getElementById("registerPassword").value;
+    const confirm = document.getElementById("confirmPassword").value;
+    const message = document.getElementById("registerMessage");
+    if (password !== confirm) {
+        message.textContent = "Passwords do not match.";
+        return;
+    }
+    message.textContent = "Creating account...";
+    try {
+        await apiRequest("/register", {
+            method: "POST",
+            body: jsonBody({
+                email: document.getElementById("registerEmail").value.trim(),
+                password
+            })
+        });
+        message.textContent = "Account created. Redirecting to login...";
+        setTimeout(() => window.location.href = "login.html", 900);
+    } catch (error) {
+        message.textContent = error.message;
+    }
+});
+</script>
+</body>
+</html>

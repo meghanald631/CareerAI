@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard | CareerAI</title>
+<link rel="stylesheet" href="style.css">
+<script src="api.js" defer></script>
+</head>
+<body>
+<header class="navbar">
+    <a href="dashboard.html" class="logo">Career<span>AI.</span></a>
+    <nav class="nav-links">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="profile.html">Profile</a>
+        <a href="applications.html">Applications</a>
+        <a href="job_analysis.html">Job Workspace</a>
+    </nav>
+    <button class="button button-small" id="logoutButton">Logout</button>
+</header>
+<main class="section">
+    <div class="section-heading">
+        <span class="eyebrow">YOUR CAREER WORKSPACE</span>
+        <h1>Welcome to CareerAI</h1>
+        <p id="userEmail">Loading your account...</p>
+        <p id="dashboardMessage" class="form-message"></p>
+    </div>
+    <div class="feature-grid">
+        <article class="feature-card"><h3>My Profile</h3><p>Manage candidate profile, skills and candidate facts.</p><a href="profile.html">Open Profile →</a></article>
+        <article class="feature-card"><h3>Job Analysis</h3><p>Analyse job descriptions, compare your skills and save opportunities.</p><a href="job_analysis.html">Open Job Workspace →</a></article>
+        <article class="feature-card"><h3>My Applications</h3><p id="applicationCount">Loading applications...</p><a href="applications.html">Track Applications →</a></article>
+        <article class="feature-card"><h3>Resume Builder</h3><p>Generate a tailored resume for a saved application.</p><a href="resume.html">Build Resume →</a></article>
+        <article class="feature-card"><h3>Cover Letters</h3><p>Create a job-specific cover letter.</p><a href="cover-letter.html">Create Cover Letter →</a></article>
+        <article class="feature-card"><h3>Interview Preparation</h3><p>Record interview rounds, questions and answers.</p><a href="interviews.html">Prepare →</a></article>
+        <article class="feature-card"><h3>Career Insights</h3><p>Review application outcomes and interview improvement insights.</p><a href="insights.html">View Insights →</a></article>
+    </div>
+</main>
+<script>
+requireLogin();
+(async () => {
+    try {
+        const [user, apps] = await Promise.all([
+            apiRequest("/me"),
+            apiRequest("/applications")
+        ]);
+        document.getElementById("userEmail").textContent = `Logged in as: ${user.email}`;
+        document.getElementById("applicationCount").textContent = `${apps.length} saved application(s).`;
+    } catch (error) {
+        document.getElementById("dashboardMessage").textContent = error.message;
+    }
+})();
+</script>
+</body>
+</html>
