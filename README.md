@@ -198,3 +198,7 @@ Some AI-powered features require a properly configured OpenAI API account with a
 ---
 
 *CareerAI is being developed as a practical project to explore the integration of artificial intelligence, backend development, database management, and job application workflows.*
+
+## Application Preview
+
+![CareerAI Dashboard](Screenshot/dashboard.png)
